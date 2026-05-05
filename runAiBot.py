@@ -418,8 +418,7 @@ def get_job_description(
             experience_required = "Error in extraction"
             print_lg("Unable to extract years of experience required!")
             # print_lg(e)
-    finally:
-        return jobDescription, experience_required, skip, skipReason, skipMessage
+    return jobDescription, experience_required, skip, skipReason, skipMessage
         
 
 
@@ -447,6 +446,7 @@ def answer_questions(modal: WebElement, questions_list: set, work_location: str,
     # all_questions = all_questions + all_list_questions + all_single_line_questions
 
     for Question in all_questions:
+        do_actions = False
         # Check if it's a select Question
         select = try_xp(Question, ".//select", False)
         if select:
@@ -585,7 +585,6 @@ def answer_questions(modal: WebElement, questions_list: set, work_location: str,
         # Check if it's a text question
         text = try_xp(Question, ".//input[@type='text']", False)
         if text: 
-            do_actions = False
             label = try_xp(Question, ".//label[@for]", False)
             try: label = label.find_element(By.CLASS_NAME,'visually-hidden')
             except: pass
