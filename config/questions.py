@@ -71,7 +71,7 @@ then it will add '.' before last 5 digits and answer. Examples:
 # currency = "INR"                 # "USD", "INR", "EUR", etc.
 
 # What is your notice period in days?
-notice_period = 30                   # Any number >= 0 without quotes. Eg: 0, 7, 15, 30, 45, etc.
+notice_period = 0                   # Any number >= 0 without quotes. Eg: 0, 7, 15, 30, 45, etc.
 '''
 Note: If question has 'month' or 'week' in it (Example: What is your notice period in months),
 then it will divide by 30 or 7 and answer respectively. Examples:
@@ -95,7 +95,7 @@ Note: If left empty as "", the tool will not answer the question. However, note 
 
 # Your cover letter in quotes, use \n to add line breaks if using single quotes "Cover Letter".You can skip \n if using triple quotes """Cover Letter""" (This question makes sense though)
 cover_letter = """
-With over 5.5 years of experience as a Lead Software Developer, I specialize in building high-performance React Native and Next.js ecosystems. At Planify, I architected the Alpha AIF and Planify platforms, achieving a 40% reduction in app bundle size and driving a 4x increase in user signups through optimized onboarding flows. My background includes building enterprise-grade UI libraries and developing IoT solutions showcased at Amazon re:Invent. I am an expert in creating fluid, 120fps mobile experiences and scalable web architectures, and I am eager to bring this technical leadership to your engineering team at Planify Capital LTD.
+With over 5.10 years of experience as a Lead Software Developer, I specialize in building high-performance React Native and Next.js ecosystems. At Planify, I architected the Alpha AIF and Planify platforms, achieving a 40% reduction in app bundle size and driving a 4x increase in user signups through optimized onboarding flows. My background includes building enterprise-grade UI libraries and developing IoT solutions showcased at Amazon re:Invent. I am an expert in creating fluid, 120fps mobile experiences and scalable web architectures, and I am eager to bring this technical leadership to your engineering team at Planify Capital LTD.
 """
 ##> ------ Dheeraj Deshwal : dheeraj9811 Email:dheeraj20194@iiitd.ac.in/dheerajdeshwal9811@gmail.com - Feature ------
 
@@ -120,7 +120,7 @@ confidence_level = "9"             # Any number between "1" to "10" including 1 
 
 ## Allow Manual Inputs
 # Should the tool pause before every submit application during easy apply to let you check the information?
-pause_before_submit = False         # True or False, Note: True or False are case-sensitive
+pause_before_submit = True         # True or False, Note: True or False are case-sensitive
 '''
 Note: Will be treated as False if `run_in_background = True`
 '''
