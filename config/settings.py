@@ -91,6 +91,9 @@ showAiErrorAlerts = False            # True or False, Note: True or False are ca
 # Use ChatGPT for resume building (Experimental Feature can break the application. Recommended to leave it as False) 
 # use_resume_generator = False       # True or False, Note: True or False are case-sensitive ,   This feature may only work with 'stealth_mode = True'. As ChatGPT website is hosted by CloudFlare which is protected by Anti-bot protections!
 
+# Use terminal for confirmations and alerts instead of GUI popups (helps prevent dialogs hiding behind windows)
+use_terminal_for_dialogs = True     # True or False, Note: True or False are case-sensitive
+
 
 
 

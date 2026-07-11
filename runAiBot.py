@@ -14,6 +14,9 @@ Support me: https://github.com/sponsors/GodsScion
 version:    26.01.20.5.08
 '''
 
+from __future__ import annotations
+
+
 
 # Imports
 import os
@@ -1079,7 +1082,7 @@ def apply_to_jobs(search_terms: list[str]) -> None:
                                 wait_span_click(driver, "Review", 1, scrollTop=True)
                                 cur_pause_before_submit = pause_before_submit
                                 if errored != "stuck" and cur_pause_before_submit:
-                                    decision = safe_confirm('1. Please verify your information.\n2. If you edited something, please return to this final screen.\n3. DO NOT CLICK "Submit Application".\n\nPause = Temporarily disable pausing\nNo = Discard this application\nYes = Submit application\n\nYou can turn off "Pause before submit" setting in config.py', "Confirm your information",["Pause", "No", "l"])
+                                    decision = safe_confirm('1. Please verify your information.\n2. If you edited something, please return to this final screen.\n3. DO NOT CLICK "Submit Application".\n\nPause = Temporarily disable pausing\nNo = Discard this application\nYes = Submit application\n\nYou can turn off "Pause before submit" setting in config.py', "Confirm your information",["Pause", "No", "Confirm"])
                                     if decision == "No": raise Exception("Job application discarded by user!")
                                     pause_before_submit = False if "Pause" == decision else True
                                     # try_xp(modal, ".//span[normalize-space(.)='Review']")

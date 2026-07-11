@@ -14,6 +14,9 @@ Support me: https://github.com/sponsors/GodsScion
 version:    26.01.20.5.08
 '''
 
+from __future__ import annotations
+
+
 
 # Imports
 
@@ -27,10 +30,19 @@ from random import randint
 from datetime import datetime, timedelta
 from pprint import pprint
 
+try:
+    from config.settings import use_terminal_for_dialogs
+except ImportError:
+    use_terminal_for_dialogs = False
+
 def safe_alert(text: str, title: str = "Alert", button: str = "Okay"):
     '''
-    A wrapper for pyautogui.alert that falls back to console if Tkinter is missing.
+    A wrapper for pyautogui.alert that falls back to console if Tkinter is missing or if terminal mode is enabled.
     '''
+    if use_terminal_for_dialogs:
+        print(f"\n[{title}]\n{text}")
+        input(f"Press Enter to continue (Button: {button})...")
+        return button
     try:
         from pyautogui import alert
         return alert(text, title, button)
@@ -41,8 +53,14 @@ def safe_alert(text: str, title: str = "Alert", button: str = "Okay"):
 
 def safe_confirm(text: str, title: str = "Confirm", buttons: list[str] = ["OK", "Cancel"]):
     '''
-    A wrapper for pyautogui.confirm that falls back to console if Tkinter is missing.
+    A wrapper for pyautogui.confirm that falls back to console if Tkinter is missing or if terminal mode is enabled.
     '''
+    if use_terminal_for_dialogs:
+        print(f"\n[{title}]\n{text}")
+        choice = ""
+        while choice not in buttons:
+            choice = input(f"Please enter one of {buttons}: ")
+        return choice
     try:
         from pyautogui import confirm
         return confirm(text, title, buttons)

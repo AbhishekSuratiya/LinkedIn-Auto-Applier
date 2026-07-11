@@ -14,6 +14,9 @@ Support me: https://github.com/sponsors/GodsScion
 version:    26.01.20.5.08
 '''
 
+from __future__ import annotations
+
+
 
 
 
