@@ -35,10 +35,31 @@ try:
 except ImportError:
     use_terminal_for_dialogs = False
 
+# Set by start.py (via set_active_overlay) once the Tkinter overlay window
+# exists. When present, alerts/confirmations are shown as dialogs on that
+# same window instead of the terminal or a separate ad-hoc popup - this is
+# what actually satisfies "don't make the user type answers into the
+# terminal, show a UI instead".
+_active_overlay = None
+
+def set_active_overlay(overlay) -> None:
+    '''
+    Registers the live Tkinter overlay (or None) so safe_alert/safe_confirm
+    route through it instead of the terminal.
+    '''
+    global _active_overlay
+    _active_overlay = overlay
+
 def safe_alert(text: str, title: str = "Alert", button: str = "Okay"):
     '''
-    A wrapper for pyautogui.alert that falls back to console if Tkinter is missing or if terminal mode is enabled.
+    Shows an alert. Prefers the Tkinter overlay window if one is active,
+    then falls back to pyautogui, then to the terminal.
     '''
+    if _active_overlay is not None:
+        try:
+            return _active_overlay.alert(text, title, button)
+        except Exception:
+            pass  # fall through to other methods below
     if use_terminal_for_dialogs:
         print(f"\n[{title}]\n{text}")
         input(f"Press Enter to continue (Button: {button})...")
@@ -53,8 +74,14 @@ def safe_alert(text: str, title: str = "Alert", button: str = "Okay"):
 
 def safe_confirm(text: str, title: str = "Confirm", buttons: list[str] = ["OK", "Cancel"]):
     '''
-    A wrapper for pyautogui.confirm that falls back to console if Tkinter is missing or if terminal mode is enabled.
+    Shows a confirmation dialog. Prefers the Tkinter overlay window if one
+    is active, then falls back to pyautogui, then to the terminal.
     '''
+    if _active_overlay is not None:
+        try:
+            return _active_overlay.confirm(text, title, buttons)
+        except Exception:
+            pass  # fall through to other methods below
     if use_terminal_for_dialogs:
         print(f"\n[{title}]\n{text}")
         choice = ""

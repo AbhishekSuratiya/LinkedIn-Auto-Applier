@@ -38,11 +38,17 @@ from selenium.webdriver.support.select import Select
 from selenium.webdriver.remote.webelement import WebElement
 from selenium.common.exceptions import NoSuchElementException, ElementClickInterceptedException, NoSuchWindowException, ElementNotInteractableException, WebDriverException
 
-from config.personals import *
-from config.questions import *
-from config.search import *
-from config.secrets import use_AI, username, password, ai_provider
-from config.settings import *
+# Config will be passed to main() instead of importing
+# Old imports kept for backward compatibility if run directly
+try:
+    from config.personals import *
+    from config.questions import *
+    from config.search import *
+    from config.secrets import use_AI, username, password, ai_provider
+    from config.settings import *
+except ImportError:
+    # Gracefully handle missing config imports (when using config.json)
+    pass
 
 from modules.open_chrome import *
 from modules.helpers import *
@@ -103,6 +109,150 @@ about_company_for_ai = None # TODO extract about company for AI
 ##<
 
 #>
+
+
+# Global event queues for UI communication
+g_event_queue = None
+g_response_queue = None
+
+
+def _setup_config_vars(config: dict) -> None:
+    """
+    Map config dict values to global variables for backward compatibility.
+    This allows the rest of the code to work without major refactoring.
+    """
+    global first_name, middle_name, last_name, full_name, phone_number, current_city, street, state, zipcode, country
+    global years_of_experience, require_visa, website, linkedIn, us_citizenship, desired_salary, current_ctc, notice_period
+    global linkedin_headline, linkedin_summary, cover_letter, user_information_all, recent_employer, confidence_level
+    global pause_before_submit, pause_at_failed_question, overwrite_previous_answers
+    global search_terms, search_location, switch_number, randomize_search_order, sort_by, date_posted, salary, easy_apply_only
+    global experience_level, job_type, on_site, companies, location, industry, job_function, job_titles, benefits, commitments
+    global under_10_applicants, in_your_network, fair_chance_employer, pause_after_filters
+    global about_company_bad_words, about_company_good_words, bad_words, security_clearance, did_masters, current_experience
+    global username, password, use_AI, ai_provider, llm_model, llm_api_url, llm_api_key, stream_output
+    global close_tabs, follow_companies, run_non_stop, alternate_sortby, cycle_date_posted, stop_date_cycle_at_24hr
+    global generated_resume_path, file_name, failed_file_name, logs_folder_path, click_gap, run_in_background
+    global disable_extensions, safe_mode, smooth_scroll, keep_screen_awake, stealth_mode, showAiErrorAlerts, use_terminal_for_dialogs
+    global default_resume_path
+
+    # Personal info
+    personal = config.get("personal_info", {})
+    first_name = personal.get("first_name", "")
+    middle_name = personal.get("middle_name", "")
+    last_name = personal.get("last_name", "")
+    phone_number = personal.get("phone_number", "")
+    current_city = personal.get("current_city", "")
+    street = personal.get("street", "")
+    state = personal.get("state", "")
+    zipcode = personal.get("zipcode", "")
+    country = personal.get("country", "")
+
+    # QA answers
+    qa = config.get("qa_answers", {})
+    default_resume_path = qa.get("default_resume_path", "all resumes/default/resume.pdf")
+    years_of_experience = qa.get("years_of_experience", "")
+    require_visa = qa.get("require_visa", "No")
+    website = qa.get("website", "")
+    linkedIn = qa.get("linkedIn", "")
+    us_citizenship = qa.get("us_citizenship", "")
+    desired_salary = qa.get("desired_salary", 0)
+    current_ctc = qa.get("current_ctc", 0)
+    notice_period = qa.get("notice_period", 0)
+    linkedin_headline = qa.get("linkedin_headline", "")
+    linkedin_summary = qa.get("linkedin_summary", "")
+    cover_letter = qa.get("cover_letter", "")
+    user_information_all = qa.get("user_information_all", "")
+    recent_employer = qa.get("recent_employer", "")
+    confidence_level = qa.get("confidence_level", "")
+
+    # Behavior
+    behavior = config.get("behavior", {})
+    pause_before_submit = behavior.get("pause_before_submit", True)
+    pause_at_failed_question = behavior.get("pause_at_failed_question", True)
+    overwrite_previous_answers = behavior.get("overwrite_previous_answers", False)
+    close_tabs = behavior.get("close_tabs", False)
+    follow_companies = behavior.get("follow_companies", False)
+    run_non_stop = behavior.get("run_non_stop", False)
+    alternate_sortby = behavior.get("alternate_sortby", True)
+    cycle_date_posted = behavior.get("cycle_date_posted", True)
+    stop_date_cycle_at_24hr = behavior.get("stop_date_cycle_at_24hr", True)
+    run_in_background = behavior.get("run_in_background", False)
+    disable_extensions = behavior.get("disable_extensions", False)
+    safe_mode = behavior.get("safe_mode", True)
+    smooth_scroll = behavior.get("smooth_scroll", False)
+    keep_screen_awake = behavior.get("keep_screen_awake", True)
+    stealth_mode = behavior.get("stealth_mode", False)
+    showAiErrorAlerts = behavior.get("showAiErrorAlerts", False)
+    use_terminal_for_dialogs = behavior.get("use_terminal_for_dialogs", True)
+
+    # modules/helpers.py's safe_alert()/safe_confirm() read `use_terminal_for_dialogs`
+    # from their OWN module namespace (frozen at import time from the old
+    # config/settings.py). Propagate the config.json value there too, so
+    # config.json is the actual source of truth instead of being silently ignored.
+    import modules.helpers as _helpers_module
+    _helpers_module.use_terminal_for_dialogs = use_terminal_for_dialogs
+
+    # Search preferences
+    search = config.get("search_preferences", {})
+    search_terms = search.get("search_terms", [])
+    search_location = search.get("search_location", "")
+    switch_number = search.get("switch_number", 30)
+    randomize_search_order = search.get("randomize_search_order", False)
+    sort_by = search.get("sort_by", "")
+    date_posted = search.get("date_posted", "Past week")
+    salary = search.get("salary", "")
+    easy_apply_only = search.get("easy_apply_only", True)
+    experience_level = search.get("experience_level", [])
+    job_type = search.get("job_type", [])
+    on_site = search.get("on_site", [])
+    companies = search.get("companies", [])
+    location = search.get("location", [])
+    industry = search.get("industry", [])
+    job_function = search.get("job_function", [])
+    job_titles = search.get("job_titles", [])
+    benefits = search.get("benefits", [])
+    commitments = search.get("commitments", [])
+    under_10_applicants = search.get("under_10_applicants", False)
+    in_your_network = search.get("in_your_network", False)
+    fair_chance_employer = search.get("fair_chance_employer", False)
+    pause_after_filters = search.get("pause_after_filters", True)
+
+    # Filtering
+    filtering = config.get("filtering", {})
+    about_company_bad_words = filtering.get("about_company_bad_words", [])
+    about_company_good_words = filtering.get("about_company_good_words", [])
+    bad_words = filtering.get("bad_words", [])
+    security_clearance = filtering.get("security_clearance", False)
+    did_masters = filtering.get("did_masters", False)
+    current_experience = filtering.get("current_experience", 5)
+
+    # Secrets
+    secrets = config.get("secrets", {})
+    username = secrets.get("linkedin_username", "")
+    password = secrets.get("linkedin_password", "")
+    use_AI = secrets.get("use_AI", False)
+    ai_provider = secrets.get("ai_provider", "openai")
+    llm_model = secrets.get("llm_model", "gpt-4o")
+    llm_api_url = secrets.get("llm_api_url", "https://api.openai.com/v1")
+    llm_api_key = secrets.get("llm_api_key", "")
+    stream_output = secrets.get("stream_output", False)
+
+    # Paths
+    paths = config.get("paths", {})
+    file_name = paths.get("file_name", "all excels/all_applied_applications_history.csv")
+    failed_file_name = paths.get("failed_file_name", "all excels/all_failed_applications_history.csv")
+    logs_folder_path = paths.get("logs_folder_path", "logs/")
+    generated_resume_path = paths.get("generated_resume_path", "all resumes/")
+
+    # Performance
+    perf = config.get("performance", {})
+    click_gap = perf.get("click_gap", 1)
+
+
+def validate_config_internal(config: dict) -> None:
+    """Validate config dict structure"""
+    from config_loader import validate_config as validate_cfg
+    validate_cfg(config)
 
 
 #< Login Functions
@@ -439,8 +589,10 @@ def answer_common_questions(label: str, answer: str) -> str:
 
 
 # Function to answer the questions for Easy Apply
-def answer_questions(modal: WebElement, questions_list: set, work_location: str, job_description: str | None = None ) -> set:
+def answer_questions(modal: WebElement, questions_list: set, work_location: str, job_description: str | None = None, event_queue=None) -> set:
     # Get all questions from the page
+    if event_queue is None:
+        event_queue = g_event_queue
 
     all_questions = modal.find_elements(By.XPATH, ".//div[@data-test-form-element]")
     # all_questions = modal.find_elements(By.CLASS_NAME, "jobs-easy-apply-form-element")
@@ -526,6 +678,16 @@ def answer_questions(modal: WebElement, questions_list: set, work_location: str,
                         answer = select.first_selected_option.text
                         randomly_answered_questions.add((f'{label_org} [ {options} ]',"select"))
             questions_list.add((f'{label_org} [ {options} ]', answer, "select", prev_answer))
+
+            # Emit event to UI
+            if event_queue:
+                try:
+                    from ui.events import QuestionCollected
+                    event_queue.put(QuestionCollected(
+                        label=label_org, answer=answer, question_type="select", prev_answer=prev_answer
+                    ))
+                except: pass
+
             continue
 
         # Check if it's a radio Question
@@ -583,6 +745,16 @@ def answer_questions(modal: WebElement, questions_list: set, work_location: str,
                     if not foundOption: randomly_answered_questions.add((f'{label_org} ]',"radio"))
             else: answer = prev_answer
             questions_list.add((label_org+" ]", answer, "radio", prev_answer))
+
+            # Emit event to UI
+            if event_queue:
+                try:
+                    from ui.events import QuestionCollected
+                    event_queue.put(QuestionCollected(
+                        label=label_org, answer=answer, question_type="radio", prev_answer=prev_answer
+                    ))
+                except: pass
+
             continue
 
         # Check if it's a text question
@@ -674,6 +846,16 @@ def answer_questions(modal: WebElement, questions_list: set, work_location: str,
                     actions.send_keys(Keys.ARROW_DOWN)
                     actions.send_keys(Keys.ENTER).perform()
             questions_list.add((label, text.get_attribute("value"), "text", prev_answer))
+
+            # Emit event to UI
+            if event_queue:
+                try:
+                    from ui.events import QuestionCollected
+                    event_queue.put(QuestionCollected(
+                        label=label_org, answer=text.get_attribute("value"), question_type="text", prev_answer=prev_answer
+                    ))
+                except: pass
+
             continue
 
         # Check if it's a textarea question
@@ -718,6 +900,16 @@ def answer_questions(modal: WebElement, questions_list: set, work_location: str,
                     actions.send_keys(Keys.ARROW_DOWN)
                     actions.send_keys(Keys.ENTER).perform()
             questions_list.add((label, text_area.get_attribute("value"), "textarea", prev_answer))
+
+            # Emit event to UI
+            if event_queue:
+                try:
+                    from ui.events import QuestionCollected
+                    event_queue.put(QuestionCollected(
+                        label=label_org, answer=text_area.get_attribute("value"), question_type="textarea", prev_answer=prev_answer
+                    ))
+                except: pass
+
             ##<
             continue
 
@@ -739,6 +931,16 @@ def answer_questions(modal: WebElement, questions_list: set, work_location: str,
                     print_lg("Checkbox click failed!", e)
                     pass
             questions_list.add((f'{label} ([X] {answer})', checked, "checkbox", prev_answer))
+
+            # Emit event to UI
+            if event_queue:
+                try:
+                    from ui.events import QuestionCollected
+                    event_queue.put(QuestionCollected(
+                        label=label, answer=checked, question_type="checkbox", prev_answer=prev_answer
+                    ))
+                except: pass
+
             continue
 
 
@@ -866,12 +1068,18 @@ def discard_job() -> None:
 
 
 # Function to apply to jobs
-def apply_to_jobs(search_terms: list[str]) -> None:
+def apply_to_jobs(search_terms: list[str], event_queue=None, response_queue=None) -> None:
     applied_jobs = get_applied_job_ids()
     rejected_jobs = set()
     blacklisted_companies = set()
-    global current_city, failed_count, skip_count, easy_applied_count, external_jobs_count, tabs_count, pause_before_submit, pause_at_failed_question, useNewResume
+    global current_city, failed_count, skip_count, easy_applied_count, external_jobs_count, tabs_count, pause_before_submit, pause_at_failed_question, useNewResume, g_event_queue, g_response_queue
     current_city = current_city.strip()
+
+    # Use provided queues or fall back to global
+    if event_queue is None:
+        event_queue = g_event_queue
+    if response_queue is None:
+        response_queue = g_response_queue
 
     if randomize_search_order:  shuffle(search_terms)
     for searchTerm in search_terms:
@@ -902,6 +1110,17 @@ def apply_to_jobs(search_terms: list[str]) -> None:
                     job_id,title,company,work_location,work_style,skip = get_job_main_details(job, blacklisted_companies, rejected_jobs)
 
                     if skip: continue
+
+                    # Emit job started event to UI
+                    if event_queue:
+                        try:
+                            from ui.events import JobStarted
+                            event_queue.put(JobStarted(
+                                job_id=job_id, title=title, company=company,
+                                work_location=work_location, work_style=work_style
+                            ))
+                        except Exception as e:
+                            print_lg(f"Failed to emit JobStarted event: {e}")
                     # Redundant fail safe check for applied jobs!
                     try:
                         if job_id in applied_jobs or find_by_class(driver, "jobs-s-apply__application-link", 2):
@@ -1066,7 +1285,7 @@ def apply_to_jobs(search_terms: list[str]) -> None:
                                         screenshot_name = screenshot(driver, job_id, "Failed at questions")
                                         errored = "stuck"
                                         raise Exception("Seems like stuck in a continuous loop of next, probably because of new questions.")
-                                    questions_list = answer_questions(modal, questions_list, work_location, job_description=description)
+                                    questions_list = answer_questions(modal, questions_list, work_location, job_description=description, event_queue=event_queue)
                                     if useNewResume and not uploaded: uploaded, resume = upload_resume(modal, default_resume_path)
                                     try: next_button = modal.find_element(By.XPATH, './/span[normalize-space(.)="Review"]')
                                     except NoSuchElementException:  next_button = modal.find_element(By.XPATH, './/button[contains(span, "Next")]')
@@ -1151,14 +1370,21 @@ def apply_to_jobs(search_terms: list[str]) -> None:
             # print_lg(e)
 
 
-def run(total_runs: int) -> int:
+def run(total_runs: int, event_queue=None, response_queue=None) -> int:
     if dailyEasyApplyLimitReached:
         return total_runs
     print_lg("\n########################################################################################################################\n")
     print_lg(f"Date and Time: {datetime.now()}")
     print_lg(f"Cycle number: {total_runs}")
     print_lg(f"Currently looking for jobs posted within '{date_posted}' and sorting them by '{sort_by}'")
-    apply_to_jobs(search_terms)
+
+    # Use global queues if not provided
+    if event_queue is None:
+        event_queue = g_event_queue
+    if response_queue is None:
+        response_queue = g_response_queue
+
+    apply_to_jobs(search_terms, event_queue=event_queue, response_queue=response_queue)
     print_lg("########################################################################################################################\n")
     if not dailyEasyApplyLimitReached:
         print_lg("Sleeping for 10 min...")
@@ -1173,13 +1399,70 @@ def run(total_runs: int) -> int:
 chatGPT_tab = False
 linkedIn_tab = False
 
-def main() -> None:
+def main(config=None, driver=None, event_queue=None, response_queue=None, wait=None, actions=None) -> None:
+    """
+    Main entry point for the bot.
+
+    Args:
+        config: Configuration dictionary (from config.json)
+        driver: Selenium WebDriver instance
+        event_queue: Queue for sending events to UI
+        response_queue: Queue for receiving responses from UI
+        wait: WebDriverWait instance tied to `driver` (created if not provided)
+        actions: ActionChains instance tied to `driver` (created if not provided)
+    """
+    import queue as queue_module
+
+    # Initialize queue defaults if not provided
+    if event_queue is None:
+        event_queue = queue_module.Queue()
+    if response_queue is None:
+        response_queue = queue_module.Queue()
+
+    # Load config if not provided
+    if config is None:
+        from config_loader import load_config, validate_config as validate_cfg
+        config = load_config("config.json")
+        validate_cfg(config)
+    else:
+        # Config provided (from start.py)
+        validate_config_internal(config)
+
+    # Initialize driver if not provided
+    if driver is None:
+        from modules.open_chrome import initialize_driver
+        driver, wait, actions = initialize_driver(config)
+
+    # The rest of this module (and modules/clickers_and_finders.py etc.) reference
+    # `driver`, `wait`, `actions` as module-level globals populated via
+    # `from modules.open_chrome import *` at import time. Since that import happens
+    # before a real driver exists (when using config.json), those names are bound
+    # to None. Rebind them here so every function in this file sees the live
+    # instances actually in use.
+    globals()["driver"] = driver
+    if wait is None:
+        from selenium.webdriver.support.ui import WebDriverWait
+        wait = WebDriverWait(driver, 5)
+    if actions is None:
+        from selenium.webdriver.common.action_chains import ActionChains
+        actions = ActionChains(driver)
+    globals()["wait"] = wait
+    globals()["actions"] = actions
+
     safe_alert("Please consider sponsoring this project at:\n\nhttps://github.com/sponsors/GodsScion\n\n", "Support the project", "Okay")
     total_runs = 1
     try:
         global linkedIn_tab, tabs_count, useNewResume, aiClient
         alert_title = "Error Occurred. Closing Browser!"
-        validate_config()
+        # validate_config() - moved above
+
+        # Set up config variables from config dict for backward compatibility
+        _setup_config_vars(config)
+
+        # Store global references for event communication
+        global g_event_queue, g_response_queue
+        g_event_queue = event_queue
+        g_response_queue = response_queue
 
         if not os.path.exists(default_resume_path):
             safe_alert(text='Your default resume "{}" is missing! Please update it\'s folder path "default_resume_path" in config.py\n\nOR\n\nAdd a resume with exact name and path (check for spelling mistakes including cases).\n\n\nFor now the bot will continue using your previous upload from LinkedIn!'.format(default_resume_path), title="Missing Resume", button="OK")
@@ -1222,7 +1505,7 @@ def main() -> None:
 
         # Start applying to jobs
         driver.switch_to.window(linkedIn_tab)
-        total_runs = run(total_runs)
+        total_runs = run(total_runs, event_queue, response_queue)
         while(run_non_stop):
             if cycle_date_posted:
                 date_options = ["Any time", "Past month", "Past week", "Past 24 hours"]
@@ -1231,9 +1514,9 @@ def main() -> None:
             if alternate_sortby:
                 global sort_by
                 sort_by = "Most recent" if sort_by == "Most relevant" else "Most relevant"
-                total_runs = run(total_runs)
+                total_runs = run(total_runs, event_queue, response_queue)
                 sort_by = "Most recent" if sort_by == "Most relevant" else "Most relevant"
-            total_runs = run(total_runs)
+            total_runs = run(total_runs, event_queue, response_queue)
             if dailyEasyApplyLimitReached:
                 break
 
